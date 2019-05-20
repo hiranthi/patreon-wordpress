@@ -45,7 +45,7 @@ class Patreon_Wordpress {
 		self::$Patreon_User_Profiles = new Patreon_User_Profiles;
 		self::$Patreon_Protect       = new Patreon_Protect;
 		self::$Patron_Compatibility  = new Patreon_Compatibility;
-
+		
 		add_action( 'wp_head', array( $this, 'updatePatreonUser' ) );
 		add_action( 'init', array( $this, 'checkPatreonCreatorID' ) );
 		add_action( 'admin_init', array( $this, 'post_credential_update_api_connectivity_check' ) );
@@ -172,6 +172,21 @@ class Patreon_Wordpress {
 
 	}
 	public static function checkPatreonCreatorID() {
+		
+		// Exception - custom code to delete the options for test branch - here because wp_get_current_user is needed before running and its ready later in init
+		
+		if ( current_user_can('manage_options') AND is_admin() AND $_REQUEST['reset_patreon_wordpress_options'] == 'true' ) {
+			
+			global $wpdb;
+			
+			$wpdb->query("DELETE FROM wp_options WHERE option_name LIKE 'patreon-%'");
+			if($wpdb->last_error !== '') {
+    $wpdb->print_error();
+}
+			wp_redirect('/wp-admin');
+			exit;
+			
+		}
 
 		// Check if creator id doesnt exist. Account for the case in which creator id was saved as empty by the Creator
 
@@ -670,6 +685,11 @@ class Patreon_Wordpress {
 		// This function processes any message or notification to display once after updates.
 	
 		// Skip showing any notice if setup is being done
+		
+			?>
+			<div style="float:right;margin:10px;"><a href="/wp-admin?reset_patreon_wordpress_options=true"><button type="button" class="button button-primary">Reset PW setup</button></a>
+			</div>
+		<?php	
 		
 		if ( $_REQUEST['page'] == 'patreon_wordpress_setup_wizard' ) {
 			return;
